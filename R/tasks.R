@@ -7,15 +7,29 @@ EXTRA_COLS <- c(assignee_ids = NA_character_)
 #' @noRd
 #'
 parse_tasks <- function(tasks) {
+
+  if (!length(tasks))
+    return(tibble(
+      task_id     = character(0),
+      task_name   = character(0),
+      project_id  = character(0),
+      status      = character(0),
+      billable    = logical(0),
+      assignee_id = list(0)))
+
   tibble(tasks) %>%
     unnest_wider(tasks) %>%
     clean_names() %>%
     add_column(!!!EXTRA_COLS[!names(EXTRA_COLS) %in% names(.)]) %>%
     rename(assignee_id = assignee_ids) %>%
     mutate(
-      assignee_id = assignee_id %>% map(unlist)
-    ) %>%
-    select(id, name,  project_id, status, billable, assignee_id)
+      assignee_id = assignee_id %>% map(unlist),
+      estimate    = lubridate::as.duration(estimate),
+      duration    = lubridate::as.duration(duration)) %>%
+    select(
+      task_id = id, task_name = name,
+      project_id, status, billable, assignee_id,
+      estimate, duration)
 }
 
 #' Get tasks

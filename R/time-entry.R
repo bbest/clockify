@@ -20,6 +20,7 @@ parse_time_entries <- function(entries, finished, concise) {
       user_id,
       workspace_id,
       project_id,
+      task_id,
       billable,
       description,
       time_start = start,
