@@ -3,6 +3,7 @@ EMPTY_ENTRIES <- tibble(
   user_id = character(),
   workspace_id = character(),
   project_id = character(),
+  task_id = character(),
   billable = logical(),
   description = character(),
   time_start = POSIXct(),
