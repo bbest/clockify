@@ -4,6 +4,7 @@ EMPTY_ENTRIES <- tibble(
   workspace_id = character(),
   project_id = character(),
   task_id = character(),
+  #tag_ids = list(),  # tag_ids might not be present
   billable = logical(),
   description = character(),
   time_start = POSIXct(),
@@ -12,6 +13,10 @@ EMPTY_ENTRIES <- tibble(
 )
 
 parse_time_entries <- function(entries, finished, concise) {
+
+  # browser("parse_time_entries")
+  # entries_0 <- entries
+
   entries <- tibble(entries) %>%
     unnest_wider(entries) %>%
     unnest_wider(timeInterval) %>%
@@ -22,6 +27,7 @@ parse_time_entries <- function(entries, finished, concise) {
       workspace_id,
       project_id,
       task_id,
+      #tag_ids, # tag_ids might not be present
       billable,
       description,
       time_start = start,
@@ -30,7 +36,8 @@ parse_time_entries <- function(entries, finished, concise) {
     mutate(
       time_start = time_parse(time_start),
       time_end = time_parse(time_end),
-      duration = as.numeric(difftime(time_end, time_start, units = "mins"))
+      duration = as.numeric(difftime(time_end, time_start, units = "mins")),
+      #n_tags = map_int(tag_ids, length)  # tag_ids might not be present
     ) %>%
     arrange(time_start)
 
@@ -92,6 +99,7 @@ time_entries <- function(user_id = NULL, start = NULL, end = NULL, finished = TR
 
   entries <- paginate(path, query, ...)
 
+  #browser("time_entries")
   if (length(entries)) {
     entries <- parse_time_entries(entries, finished, concise)
 
@@ -104,6 +112,52 @@ time_entries <- function(user_id = NULL, start = NULL, end = NULL, finished = TR
   }
 
   entries
+}
+
+#' Get all time entries
+#'
+#' Get all time entries with expansion to all users and lookup names.
+#'
+#' @return A data frame with one record per time entry.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' set_api_key(Sys.getenv("CLOCKIFY_API_KEY"))
+#'
+#' USER_ID <- "612b15a4f4c3bf0462192676"
+#'
+#' time_entries_all()
+#' }
+time_entries_all <- function(){
+    d_projects <- projects() %>%
+      select(project_id, project_name)
+    d_tasks <- d_projects %>%
+      mutate(
+        task_data = map(project_id, tasks)) %>%
+      select(-project_id) %>%
+      unnest(task_data) %>%
+      arrange(project_name, task_name)
+    d_users <- users() %>%
+      select(user_id, user_name)
+    # d_tags <- tags() %>%
+    #   select(tag_id = id, tag_name = name)
+    entries <- d_users %>%
+      mutate(
+        time_data = map(user_id, time_entries, concise = F)) %>%
+      select(-user_id, -user_name) %>%
+      unnest(time_data) %>%
+      rename(time_id = id) %>%
+      left_join(
+        d_projects, by = "project_id") %>%
+      left_join(
+        d_users, by = "user_id") %>%
+      left_join(
+        d_tasks %>%
+          select(task_id, task_name), by = "task_id") %>%
+      mutate(
+        duration_hrs = duration / 60)
+    entries
 }
 
 #' Get a specific time entry on workspace

@@ -81,3 +81,32 @@ task <- function(project_id, task_id) {
     list() %>%
     parse_tasks()
 }
+
+
+#' Get all tasks
+#'
+#' For all projects, wraps \code{GET /workspaces/{workspaceId}/projects/{projectId}/tasks}.
+#'
+#' @return A data frame.
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' set_api_key(Sys.getenv("CLOCKIFY_API_KEY"))
+#'
+#' tasks_all()
+#' }
+tasks_all <- function(){
+
+  d_projects <- projects() %>%
+    select(project_id, project_name)
+
+  tasks <- d_projects %>%
+    mutate(
+      task_data = map(project_id, tasks)) %>%
+    select(-project_id) %>%
+    unnest(task_data) %>%
+    arrange(project_name, task_name)
+
+  tasks
+}
