@@ -7,7 +7,7 @@
 #'
 #' @return Paginated response from API.
 paginate <- function(path, query = NULL, pages = NULL, page_size = 50) {
-  if (is.null(query)) query = list()
+  if (is.null(query)) query <- list()
 
   page <- 1
   #
@@ -33,7 +33,12 @@ paginate <- function(path, query = NULL, pages = NULL, page_size = 50) {
 
     results <- append(results, result)
 
-    if (!is.null(pages) && page >= pages) {
+    if (
+      # Have retrieved required number of pages.
+      (!is.null(pages) && page >= pages) ||
+        # Last page is not full.
+        (records < page_size)
+    ) {
       break
     } else {
       page <- page + 1
